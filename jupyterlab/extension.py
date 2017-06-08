@@ -17,7 +17,7 @@ from ._version import __version__
 DEV_NOTE_NPM = """You're running JupyterLab from source.
 If you're working on the TypeScript sources of JupyterLab, try running
 
-    npm run watch
+    npm run watch:main
 
 from the JupyterLab repo directory in another terminal window to have the
 system incrementally watch and build JupyterLab's TypeScript for you, as you
