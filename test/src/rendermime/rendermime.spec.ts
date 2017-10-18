@@ -31,8 +31,8 @@ import {
 const RESOLVER: IRenderMime.IResolver = createFileContext();
 
 
-function createModel(data: JSONObject): IRenderMime.IMimeModel {
-  return new MimeModel({ data });
+function createModel(data: JSONObject, trusted: boolean = false): IRenderMime.IMimeModel {
+  return new MimeModel({ data, trusted });
 }
 
 const fooFactory: IRenderMime.IRendererFactory  = {
@@ -120,6 +120,31 @@ describe('rendermime/index', () => {
         let w = r.createRenderer('application/json');
         return w.renderModel(model).then(() => {
           expect(w.node.textContent).to.be('{\n  "foo": 1\n}');
+        });
+      });
+
+      it('should sanitize scripts in untrusted HTML', () => {
+        let model = createModel({
+          'text/html': '<script type="math/tex; mode=display">x</script>',
+        });
+        let w = r.createRenderer('text/html');
+        return w.renderModel(model).then(() => {
+          expect(w.node.textContent).to.be('');
+        });
+      });
+
+      it('should run scripts in trusted HTML', () => {
+        let model = createModel({
+          'text/html': [
+            '<span id="test-output">bad</span>',
+            '<script type="text/javascript">',
+            'document.getElementById("test-output").innerHTML = "ok";',
+            '</script>',
+          ].join('\n')
+        }, true);
+        let w = r.createRenderer('text/html');
+        return w.renderModel(model).then(() => {
+          expect(w.node.children[0].textContent).to.be('ok');
         });
       });
 
