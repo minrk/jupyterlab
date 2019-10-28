@@ -249,8 +249,20 @@ export class Context<T extends DocumentRegistry.IModel>
       model.isCollaborative &&
       ((model as any) as DocumentRegistry.ICollaborativeModel).isPrepopulated
     ) {
-      this._populate();
-      return;
+      // disable autosave if we are collaborative
+      (<any>this._manager).autosave = false;
+      return this._manager.ready
+        .then(() => {
+          return this._manager.contents.get(this._path, { content: false });
+        })
+        .then(async contents => {
+          if (this.isDisposed) {
+            return;
+          }
+          this._updateContentsModel(contents);
+          this._populate();
+          return;
+        });
     }
     // TODO how to handle prepopulated collaborative sessions?
     return this._revert(true);
