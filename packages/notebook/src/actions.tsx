@@ -546,6 +546,7 @@ export namespace NotebookActions {
     notebook: Notebook,
     sessionContext?: ISessionContext
   ): Promise<boolean> {
+    console.log("in runAll");
     if (!notebook.model || !notebook.activeCell) {
       return Promise.resolve(false);
     }
@@ -553,8 +554,11 @@ export namespace NotebookActions {
     const state = Private.getState(notebook);
 
     notebook.widgets.forEach(child => {
-      notebook.select(child);
+      console.log("selecting", child);
+      return notebook.select(child);
     });
+    
+    console.log("runSelected");
 
     const promise = Private.runSelected(notebook, sessionContext);
 
@@ -1536,14 +1540,19 @@ namespace Private {
 
       return active;
     });
+    console.log()
 
     notebook.activeCellIndex = lastIndex;
     notebook.deselectAll();
 
     return Promise.all(
-      selected.map(child => runCell(notebook, child, sessionContext))
+      selected.map((child) => {
+        console.log("running cell", child);
+        runCell(notebook, child, sessionContext);
+      })
     )
       .then(results => {
+        console.log("finished running");
         if (notebook.isDisposed) {
           return false;
         }
@@ -1585,6 +1594,7 @@ namespace Private {
   ): Promise<boolean> {
     translator = translator || nullTranslator;
     const trans = translator.load('jupyterlab');
+    console.log("run cell");
 
     switch (cell.model.type) {
       case 'markdown':
@@ -1606,6 +1616,7 @@ namespace Private {
             break;
           }
           const deletedCells = notebook.model?.deletedCells ?? [];
+          console.log("executing", cell.model);
           return CodeCell.execute(cell as CodeCell, sessionContext, {
             deletedCells,
             recordTiming: notebook.notebookConfig.recordTiming

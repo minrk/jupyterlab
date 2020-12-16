@@ -1213,6 +1213,7 @@ export namespace Commands {
     trans: TranslationBundle,
     sessionDialogs: ISessionContextDialogs | null
   ) {
+    console.log("adding codeRunners");
     menu.runMenu.codeRunners.add({
       tracker,
       runLabel: (n: number) => trans.__('Run Code'),
@@ -1229,10 +1230,13 @@ export namespace Commands {
         const widget = consoleTracker.find(
           widget => widget.sessionContext.session?.path === current.context.path
         );
+        console.log("restartAndRunAll");
         if (widget) {
+          console.log("restartAndRunAll widget");
           return (sessionDialogs || sessionContextDialogs)
             .restart(widget.sessionContext)
             .then(restarted => {
+              console.log("restarted", restarted);
               if (restarted) {
                 void commands.execute(CommandIDs.runAllCode);
               }

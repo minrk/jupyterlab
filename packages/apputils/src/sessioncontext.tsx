@@ -628,7 +628,9 @@ export class SessionContext implements ISessionContext {
     this._isRestarting = true;
     this._isReady = false;
     this._statusChanged.emit('restarting');
+    console.log("restartKernel 1")
     await this.session?.kernel?.restart();
+    console.log("restartKernel 2")
     this._isRestarting = false;
     this._isReady = true;
     this._statusChanged.emit(this.session?.kernel?.status || 'unknown');
@@ -1278,7 +1280,9 @@ export const sessionContextDialogs: ISessionContext.IDialogs = {
       return false;
     }
     if (result.button.accept) {
+      console.log("restart begin");
       await sessionContext.restartKernel();
+      console.log("restart done");
       return true;
     }
     return false;

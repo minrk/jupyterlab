@@ -388,6 +388,7 @@ export class KernelConnection implements Kernel.IKernelConnection {
     ) {
       this._ws!.send(serialize.serialize(msg));
     } else if (queue) {
+      console.log('queuing pending message');
       this._pendingMessages.push(msg);
     } else {
       throw new Error('Could not send message');
@@ -588,9 +589,10 @@ export class KernelConnection implements Kernel.IKernelConnection {
       session: this._clientId,
       content
     });
-    return Private.handleShellMessage(this, msg) as Promise<
-      KernelMessage.ICompleteReplyMsg
-    >;
+    return Private.handleShellMessage(
+      this,
+      msg
+    ) as Promise<KernelMessage.ICompleteReplyMsg>;
   }
 
   /**
@@ -612,9 +614,10 @@ export class KernelConnection implements Kernel.IKernelConnection {
       session: this._clientId,
       content: content
     });
-    return Private.handleShellMessage(this, msg) as Promise<
-      KernelMessage.IInspectReplyMsg
-    >;
+    return Private.handleShellMessage(
+      this,
+      msg
+    ) as Promise<KernelMessage.IInspectReplyMsg>;
   }
 
   /**
@@ -636,9 +639,10 @@ export class KernelConnection implements Kernel.IKernelConnection {
       session: this._clientId,
       content
     });
-    return Private.handleShellMessage(this, msg) as Promise<
-      KernelMessage.IHistoryReplyMsg
-    >;
+    return Private.handleShellMessage(
+      this,
+      msg
+    ) as Promise<KernelMessage.IHistoryReplyMsg>;
   }
 
   /**
@@ -679,6 +683,7 @@ export class KernelConnection implements Kernel.IKernelConnection {
       content: { ...defaults, ...content },
       metadata
     });
+    console.log('in requestExecute');
     return this.sendShellMessage(
       msg,
       true,
@@ -742,9 +747,10 @@ export class KernelConnection implements Kernel.IKernelConnection {
       session: this._clientId,
       content
     });
-    return Private.handleShellMessage(this, msg) as Promise<
-      KernelMessage.IIsCompleteReplyMsg
-    >;
+    return Private.handleShellMessage(
+      this,
+      msg
+    ) as Promise<KernelMessage.IIsCompleteReplyMsg>;
   }
 
   /**
@@ -764,9 +770,10 @@ export class KernelConnection implements Kernel.IKernelConnection {
       session: this._clientId,
       content
     });
-    return Private.handleShellMessage(this, msg) as Promise<
-      KernelMessage.ICommInfoReplyMsg
-    >;
+    return Private.handleShellMessage(
+      this,
+      msg
+    ) as Promise<KernelMessage.ICommInfoReplyMsg>;
   }
 
   /**
@@ -1020,6 +1027,7 @@ export class KernelConnection implements Kernel.IKernelConnection {
    * the socket if you plan to reconnect.
    */
   private _clearSocket(): void {
+    console.log('clearSocket');
     if (this._ws !== null) {
       // Clear the websocket event handlers and the socket itself.
       this._ws.onopen = this._noOp;
@@ -1054,11 +1062,18 @@ export class KernelConnection implements Kernel.IKernelConnection {
     // We check to make sure we are still connected each time. For
     // example, if a websocket buffer overflows, it may close, so we should
     // stop sending messages.
+    console.log(
+      '_sendPending',
+      this.connectionStatus,
+      this._kernelSession,
+      this._pendingMessages.length
+    );
     while (
       this.connectionStatus === 'connected' &&
       this._kernelSession !== RESTARTING_KERNEL_SESSION &&
       this._pendingMessages.length > 0
     ) {
+      console.log('sending one pending');
       this._sendMessage(this._pendingMessages[0], false);
 
       // We shift the message off the queue after the message is sent so that
@@ -1199,6 +1214,7 @@ export class KernelConnection implements Kernel.IKernelConnection {
 
     // Make sure the socket is clear
     this._clearSocket();
+    console.log('createSocket');
 
     // Update the connection status to reflect opening a new connection.
     this._updateConnectionStatus('connecting');
@@ -1242,6 +1258,12 @@ export class KernelConnection implements Kernel.IKernelConnection {
   private _updateConnectionStatus(
     connectionStatus: Kernel.ConnectionStatus
   ): void {
+    console.log(
+      'Update connection status',
+      connectionStatus,
+      this._connectionStatus,
+      this.status
+    );
     if (this._connectionStatus === connectionStatus) {
       return;
     }
@@ -1256,6 +1278,7 @@ export class KernelConnection implements Kernel.IKernelConnection {
 
     if (this.status !== 'dead') {
       if (connectionStatus === 'connected') {
+        console.log('connected', this._pendingMessages.length, this._kernelSession);
         // Send pending messages, and make sure we send at least one message
         // to get kernel status back.
         if (this._pendingMessages.length > 0) {
@@ -1386,7 +1409,7 @@ export class KernelConnection implements Kernel.IKernelConnection {
       this._updateConnectionStatus('connecting');
 
       // The first reconnect attempt should happen immediately, and subsequent
-      // attemps should pick a random number in a growing range so that we
+      // attempts should pick a random number in a growing range so that we
       // don't overload the server with synchronized reconnection attempts
       // across multiple kernels.
       const timeout = Private.getRandomIntInclusive(
@@ -1442,7 +1465,22 @@ export class KernelConnection implements Kernel.IKernelConnection {
     }
 
     // Update the current kernel session id
+    const restarting: Boolean =
+      this._kernelSession == RESTARTING_KERNEL_SESSION;
+    console.log(
+      'ws msg',
+      this._kernelSession,
+      this.connectionStatus,
+      this._connectionStatus,
+      msg.header.msg_type,
+      msg.content,
+    );
     this._kernelSession = msg.header.session;
+    if (restarting && this.connectionStatus == 'connected') {
+      // sendPending if ws message indicates we are done restarting after
+      // connection status is resolved
+      this._sendPending();
+    }
 
     // Handle the message asynchronously, in the order received.
     this._msgChain = this._msgChain

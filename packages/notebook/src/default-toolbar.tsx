@@ -199,9 +199,12 @@ export namespace ToolbarItems {
         void (dialogs ?? sessionContextDialogs)
           .restart(panel.sessionContext, translator)
           .then(restarted => {
+            console.log("restarted", restarted);
             if (restarted) {
+              console.log("runAll");
               void NotebookActions.runAll(panel.content, panel.sessionContext);
             }
+            console.log("returning restarted", restarted);
             return restarted;
           });
       },

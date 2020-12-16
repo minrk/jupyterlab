@@ -640,6 +640,7 @@ export namespace OutputArea {
     if (!kernel) {
       throw new Error('Session has no kernel.');
     }
+    console.log("requestExecute", content);
     const future = kernel.requestExecute(content, false, metadata);
     output.future = future;
     return future.done;
