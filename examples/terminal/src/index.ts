@@ -14,7 +14,7 @@ import '../index.css';
 
 import { DockPanel, Widget } from '@lumino/widgets';
 
-import { TerminalManager } from '@jupyterlab/services';
+import { ServerConnection, TerminalManager } from '@jupyterlab/services';
 
 import { Terminal } from '@jupyterlab/terminal';
 
@@ -29,8 +29,10 @@ async function main(): Promise<void> {
   window.addEventListener('resize', () => {
     dock.fit();
   });
-
-  const manager = new TerminalManager();
+  
+  // make serverSettings, forcing appendToken to true
+  const serverSettings = ServerConnection.makeSettings({appendToken: true})
+  const manager = new TerminalManager({serverSettings: serverSettings});
   const s1 = await manager.startNew();
   const term1 = new Terminal(s1, { theme: 'light' });
   term1.title.closable = true;
